@@ -1,12 +1,33 @@
 from Byte import Byte
 from Const import Const
+from converter import *
 
 
 class Kuznechik:
-    def __init__(self, key):
-        self.k1 = Const(key[:32])
-        self.k2 = Const(key[32:])
+    def __init__(self, key, text):
+        self.k1, self.k2 = Const(key[:32]), Const(key[32:])
         self.data = [self.k1, self.k2]
+        self.text = text
+
+    @classmethod
+    def converter(cls, text: str, origin: str, to: str):
+        if origin == 'text':
+            if to == 'hex':
+                return text_to_hex(text)
+            if to == 'base64':
+                return text_to_base64(text)
+        if origin == 'hex':
+            if to == 'text':
+                return hex_to_text(text)
+            if to == 'base64':
+                return hex_to_base64(text)
+            if to == 'hex':
+                return hex_to_hex(text)
+        if origin == 'base64':
+            if to == 'text':
+                return base64_to_text(text)
+            if to == 'hex':
+                return base64_to_hex(text)
 
     def L(self, num):
         for _ in range(16):
@@ -21,7 +42,7 @@ class Kuznechik:
     def L_rev(self, num):
         for _ in range(16):
             res = Byte(0)
-            nums = (1, 148, 32, 133, 16, 194, 192, 1, 251, 1, 192, 194, 16, 133, 32, 148)
+            nums = (1, 148, 32, 133, 16, 194, 192, 1, 251, 1, 192, 194, 16, 133, 32, 148)[::-1]
             for j in range(16):
                 res += Byte(nums[j]) * num[j]
             num >>= 1
@@ -78,8 +99,8 @@ class Kuznechik:
         constants = self.Constants()
         for i in range(32):
             x = self.X(self.k1, constants[i])
-            s = c.S(x)
-            l = c.L(s)
+            s = self.S(x)
+            l = self.L(s)
             x2 = self.X(l, self.k2)
             self.k1, self.k2 = Const(str(x2)), self.k1
             if i in (7, 15, 23, 31):
@@ -88,39 +109,20 @@ class Kuznechik:
 
     def encryption(self):
         self.generate_keys()
-        T = Const('8899AABBCCDDEEFF0077665544332211')
+        T = self.text
         for i in range(9):
             x = self.X(T, self.data[i])
             s = self.S(x)
             T = self.L(s)
         T = self.X(T, self.data[9])
+        return T
 
     def decryption(self):
-        T = Const('cdedd4b9428d465a3024bcbe909d677f')
+        self.generate_keys()
+        T = self.text
         for i in range(9, 0, -1):
-            print(T)
             x = self.X(T, self.data[i])
             l = self.L_rev(x)
             T = self.S_rev(l)
-        print(T)
         T = self.X(T, self.data[0])
-        print(T)
-
-
-c = Kuznechik('7766554433221100FFEEDDCCBBAA9988EFCDAB89674523011032547698BADCFE')
-c.encryption()
-c.decryption()
-
-'''
-8899aabbccddeeff0077665544332211
-30081449922f4acfa1b055e386b697e2
-7290c6a158426fb396d562087a495e28
-4ec37c20290dd51a8467b529a4a38701
-06d2ca9d61705d7cd7f4d457a0db9bec
-e1cd6beb73142a0c295792de11fd5713
-df9728b3f07e02614235c2d4e731ae28
-2d6db814f7e6f5d313c00260d523e207
-65bf381ba6cce4a892e0e097cdf68ecd
-8ead9e37ea371b2f6bd000a8e4408e0d
-cdedd4b9428d465a3024bcbe909d677f
-'''
+        return T

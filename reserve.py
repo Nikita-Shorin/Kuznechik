@@ -6,7 +6,7 @@ class Kuznechik:
     def __init__(self, key):
         self.k1 = Const(key[:32])
         self.k2 = Const(key[32:])
-        self.data = []
+        self.data = [self.k1, self.k2]
 
     def L(self, num):
         for _ in range(16):
@@ -16,6 +16,16 @@ class Kuznechik:
                 res += Byte(nums[j]) * num[j]
             num <<= 1
             num += res
+        return num
+
+    def L_rev(self, num):
+        for _ in range(16):
+            res = Byte(0)
+            nums = (1, 148, 32, 133, 16, 194, 192, 1, 251, 1, 192, 194, 16, 133, 32, 148)[::-1]
+            for j in range(16):
+                res += Byte(nums[j]) * num[j]
+            num >>= 1
+            num -= res
         return num
 
     def Constants(self):
@@ -39,6 +49,19 @@ class Kuznechik:
                202, 216, 133, 97, 32, 113, 103, 164, 45, 43, 9, 91, 203, 155, 37, 208, 190, 229, 108, 82, 89, 166,
                116, 210, 230, 244, 180, 192, 209, 102, 175, 194, 57, 75, 99, 182)
 
+    pi_rev_list = (165, 45, 50, 143, 14, 48, 56, 192, 84, 230, 158, 57, 85, 126, 82, 145, 100, 3, 87, 90, 28, 96, 7,
+                   24, 33, 114, 168, 209, 41, 198, 164, 63, 224, 39, 141, 12, 130, 234, 174, 180, 154, 99, 73, 229,
+                   66, 228, 21, 183, 200, 6, 112, 157, 65, 117, 25, 201, 170, 252, 77, 191, 42, 115, 132, 213, 195,
+                   175, 43, 134, 167, 177, 178, 91, 70, 211, 159, 253, 212, 15, 156, 47, 155, 67, 239, 217, 121, 182,
+                   83, 127, 193, 240, 35, 231, 37, 94, 181, 30, 162, 223, 166, 254, 172, 34, 249, 226, 74, 188, 53,
+                   202, 238, 120, 5, 107, 81, 225, 89, 163, 242, 113, 86, 17, 106, 137, 148, 101, 140, 187, 119, 60,
+                   123, 40, 171, 210, 49, 222, 196, 95, 204, 207, 118, 44, 184, 216, 46, 54, 219, 105, 179, 20, 149,
+                   190, 98, 161, 59, 22, 102, 233, 92, 108, 109, 173, 55, 97, 75, 185, 227, 186, 241, 160, 133, 131,
+                   218, 71, 197, 176, 51, 250, 150, 111, 110, 194, 246, 80, 255, 93, 169, 142, 23, 27, 151, 125, 236,
+                   88, 247, 31, 251, 124, 9, 13, 122, 103, 69, 135, 220, 232, 79, 29, 78, 4, 235, 248, 243, 62, 61,
+                   189, 138, 136, 221, 205, 11, 19, 152, 2, 147, 128, 144, 208, 36, 52, 203, 237, 244, 206, 153, 16,
+                   68, 64, 146, 58, 1, 38, 18, 26, 72, 104, 245, 129, 139, 199, 214, 32, 10, 8, 0, 76, 215, 116)
+
     def X(self, k, constant):
         temp = Const([constant[i] + k[i] for i in range(16)])
         return temp
@@ -47,16 +70,42 @@ class Kuznechik:
         s_temp = Const([Byte(self.pi_list[num[i].value]) for i in range(16)])
         return s_temp
 
-    def main(self):
+    def S_rev(self, num):
+        s_temp = Const([Byte(self.pi_rev_list[num[i].value]) for i in range(16)])
+        return s_temp
+
+    def generate_keys(self):
         constants = self.Constants()
         for i in range(32):
             x = self.X(self.k1, constants[i])
             s = c.S(x)
             l = c.L(s)
             x2 = self.X(l, self.k2)
-            self.k1, self.k2 = Const(str(self.k2)), Const(str(x2))
-            print(self.k1, self.k2)
+            self.k1, self.k2 = Const(str(x2)), self.k1
+            if i in (7, 15, 23, 31):
+                self.data.append(self.k1)
+                self.data.append(self.k2)
+
+    def encryption(self):
+        self.generate_keys()
+        T = Const('8899AABBCCDDEEFF0077665544332211')
+        for i in range(9):
+            x = self.X(T, self.data[i])
+            s = self.S(x)
+            T = self.L(s)
+        T = self.X(T, self.data[9])
+        print(f'T = {T}')
+
+    def decryption(self):
+        T = Const('cdedd4b9428d465a3024bcbe909d677f')
+        for i in range(9, 0, -1):
+            x = self.X(T, self.data[i])
+            l = self.L_rev(x)
+            T = self.S_rev(l)
+        T = self.X(T, self.data[0])
+        print(f'T = {T}')
 
 
 c = Kuznechik('7766554433221100FFEEDDCCBBAA9988EFCDAB89674523011032547698BADCFE')
-c.main()
+c.encryption()
+c.decryption()
