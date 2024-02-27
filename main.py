@@ -9,26 +9,6 @@ class Kuznechik:
         self.data = [self.k1, self.k2]
         self.text = text
 
-    @classmethod
-    def converter(cls, text: str, origin: str, to: str):
-        if origin == 'text':
-            if to == 'hex':
-                return text_to_hex(text)
-            if to == 'base64':
-                return text_to_base64(text)
-        if origin == 'hex':
-            if to == 'text':
-                return hex_to_text(text)
-            if to == 'base64':
-                return hex_to_base64(text)
-            if to == 'hex':
-                return hex_to_hex(text)
-        if origin == 'base64':
-            if to == 'text':
-                return base64_to_text(text)
-            if to == 'hex':
-                return base64_to_hex(text)
-
     def L(self, num):
         for _ in range(16):
             res = Byte(0)
